@@ -6,6 +6,7 @@ import com.huertoverde.exception.ConflictoException;
 import com.huertoverde.exception.RecursoNoEncontradoException;
 import com.huertoverde.exception.SolicitudInvalidaException;
 import com.huertoverde.repository.CategoriaRepository;
+import com.huertoverde.repository.DetallePedidoRepository;
 import com.huertoverde.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -20,6 +21,7 @@ public class ProductoService {
 
 	private final ProductoRepository productoRepository;
 	private final CategoriaRepository categoriaRepository;
+	private final DetallePedidoRepository detallePedidoRepository;
 
 	@Transactional(readOnly = true)
 	public List<Producto> listar(boolean soloPublicados) {
@@ -71,7 +73,13 @@ public class ProductoService {
 
 	@Transactional
 	public void eliminar(Long id) {
-		productoRepository.delete(buscarPorId(id));
+		Producto producto = buscarPorId(id);
+		// Si ya se vendió, borrarlo dejaría pedidos sin producto: se oculta despublicándolo
+		if (detallePedidoRepository.existsByProductoId(id)) {
+			throw new ConflictoException("El producto " + producto.getCodigo()
+					+ " aparece en pedidos y no se puede eliminar. Desmárcalo como publicado para ocultarlo de la tienda.");
+		}
+		productoRepository.delete(producto);
 	}
 
 	private Categoria categoriaExistente(Categoria referencia) {

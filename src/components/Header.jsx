@@ -1,6 +1,6 @@
 import { Navbar, Nav, Container } from "react-bootstrap";
 
-function Header({ pagina, irA, cantidad }) {
+function Header({ pagina, irA, cantidad, sesion, cerrarSesion }) {
     return (
         <>
             <Navbar bg="success" data-bs-theme="dark" expand="md">
@@ -20,7 +20,12 @@ function Header({ pagina, irA, cantidad }) {
                             <Nav.Link href="#" onClick={() => irA("contacto")} active={pagina === "contacto"}>Contacto</Nav.Link>
                         </Nav>
 
-                        <Nav>
+                        <Nav className="align-items-md-center">
+                            {sesion && <Navbar.Text className="me-md-2">Hola, {sesion.nombre}</Navbar.Text>}
+                            {sesion?.tipo === "administrador" && (
+                                <Nav.Link href="#" onClick={() => irA("admin")}>Panel admin</Nav.Link>
+                            )}
+                            {sesion && <Nav.Link href="#" onClick={cerrarSesion}>Cerrar sesión</Nav.Link>}
                             <Nav.Link href="#" onClick={() => irA("carrito")} active={pagina === "carrito"} className="d-flex align-items-center gap-2">
                                 <img src="/img/iconos/icono-carrito.svg" alt="" width="30" height="30" className="bg-white rounded-circle p-1" />
                                 Carrito ({cantidad})
@@ -30,7 +35,7 @@ function Header({ pagina, irA, cantidad }) {
                 </Container>
             </Navbar>
 
-            {(pagina === "inicio" || pagina === "productos") && (
+            {!sesion && (pagina === "inicio" || pagina === "productos") && (
                 <div className="bg-body-tertiary border-bottom py-2">
                     <Container className="d-flex justify-content-end gap-2 small">
                         <a href="#" onClick={() => irA("login")} className="link-success">Iniciar sesión</a>

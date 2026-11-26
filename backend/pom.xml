@@ -43,6 +43,13 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-crypto</artifactId>
 		</dependency>
+		<!-- Swagger / OpenAPI: documenta todos los endpoints en http://localhost:8080/swagger-ui.html
+		     La 3.1.x es la que corresponde a Spring Boot 4.1 (la 2.x es para Spring Boot 3 y no funciona aquí) -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>3.1.1</version>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

@@ -22,3 +22,6 @@ target/
 
 ### VS Code ###
 .vscode/
+
+### Base de datos H2 local (cada uno tiene la suya) ###
+data/

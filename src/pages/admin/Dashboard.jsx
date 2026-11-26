@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Button, Table, Badge } from "react-bootstrap";
 import EstadoCarga from "../../components/EstadoCarga";
-import { listarProductos, listarUsuarios } from "../../api";
+import { listarPedidos, listarProductos, listarUsuarios } from "../../api";
 import { enStockCritico, tiposUsuario } from "../../formato";
 
 function Dashboard({ sesion, irA }) {
     const [productos, setProductos] = useState(null);
     const [usuarios, setUsuarios] = useState(null);
+    const [pedidos, setPedidos] = useState(null);
     const [error, setError] = useState("");
 
     useEffect(() => {
         listarProductos().then(setProductos).catch(e => setError(e.message));
         listarUsuarios().then(setUsuarios).catch(e => setError(e.message));
+        listarPedidos().then(setPedidos).catch(e => setError(e.message));
     }, []);
 
-    if (!productos || !usuarios || error) return <EstadoCarga error={error} />;
+    if (!productos || !usuarios || !pedidos || error) return <EstadoCarga error={error} />;
 
     const publicados = productos.filter(p => p.publicado);
     const criticos = productos.filter(enStockCritico);
@@ -40,7 +42,7 @@ function Dashboard({ sesion, irA }) {
                             <Card body className="h-100"><strong className="d-block fs-3 text-success">{usuarios.length}</strong> Usuarios registrados</Card>
                         </Col>
                         <Col>
-                            <Card body className="h-100"><strong className="d-block fs-3 text-success">7</strong> Órdenes del día</Card>
+                            <Card body className="h-100"><strong className="d-block fs-3 text-success">{pedidos.length}</strong> Pedidos registrados</Card>
                         </Col>
                     </Row>
                 </section>

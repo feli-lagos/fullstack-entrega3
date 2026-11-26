@@ -7,6 +7,7 @@ import com.huertoverde.exception.NoAutorizadoException;
 import com.huertoverde.exception.RecursoNoEncontradoException;
 import com.huertoverde.exception.SolicitudInvalidaException;
 import com.huertoverde.repository.ComunaRepository;
+import com.huertoverde.repository.PedidoRepository;
 import com.huertoverde.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -27,6 +28,7 @@ public class UsuarioService {
 
 	private final UsuarioRepository usuarioRepository;
 	private final ComunaRepository comunaRepository;
+	private final PedidoRepository pedidoRepository;
 	private final PasswordEncoder passwordEncoder;
 
 	@Transactional(readOnly = true)
@@ -100,7 +102,12 @@ public class UsuarioService {
 
 	@Transactional
 	public void eliminar(Long id) {
-		usuarioRepository.delete(buscarPorId(id));
+		Usuario usuario = buscarPorId(id);
+		// Los pedidos guardan quién compró: no se puede borrar a un cliente con compras
+		if (pedidoRepository.existsByUsuarioId(id)) {
+			throw new ConflictoException("El usuario " + usuario.getCorreo() + " tiene pedidos registrados y no se puede eliminar");
+		}
+		usuarioRepository.delete(usuario);
 	}
 
 	@Transactional

@@ -18,6 +18,9 @@ function MenuAdmin({ pagina, irA, cerrarSesion }) {
                 <Button variant={pagina.startsWith("admin-usuario") ? "success" : "outline-success"} className="text-start" onClick={() => irA("admin-usuarios")}>
                     Usuarios
                 </Button>
+                <Button variant={pagina === "admin-pedidos" ? "success" : "outline-success"} className="text-start" onClick={() => irA("admin-pedidos")}>
+                    Pedidos
+                </Button>
             </div>
 
             <hr />

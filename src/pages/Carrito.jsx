@@ -1,16 +1,50 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Card, ListGroup, Image, Button, Form, InputGroup } from "react-bootstrap";
+import { Row, Col, Card, ListGroup, Image, Button, Form, InputGroup, Alert } from "react-bootstrap";
 import EstadoCarga from "../components/EstadoCarga";
-import { listarProductos } from "../api";
+import ErroresApi from "../components/ErroresApi";
+import { crearPedido, listarProductos } from "../api";
 import { formatoPesos } from "../formato";
 
-function Carrito({ carrito, irA, cambiarCantidad, eliminarDelCarrito }) {
+function Carrito({ carrito, sesion, irA, cambiarCantidad, eliminarDelCarrito, vaciarCarrito }) {
     const [productos, setProductos] = useState(null);
     const [error, setError] = useState("");
+    const [pagando, setPagando] = useState(false);
+    const [errorPago, setErrorPago] = useState(null);
+    const [pedido, setPedido] = useState(null);
 
     useEffect(() => {
         listarProductos(true).then(setProductos).catch(e => setError(e.message));
     }, []);
+
+    // Compra confirmada: se muestra el pedido tal como quedó guardado en la base de datos
+    if (pedido) {
+        return (
+            <main>
+                <Alert variant="success">
+                    <Alert.Heading as="h1" className="fs-4">¡Gracias por tu compra, {pedido.usuario.nombre}!</Alert.Heading>
+                    <p className="mb-0">
+                        Tu pedido <strong>N° {pedido.id}</strong> quedó registrado.
+                        Total pagado: <strong>{formatoPesos(pedido.total)}</strong>.
+                    </p>
+                </Alert>
+
+                <ListGroup className="mb-3">
+                    {pedido.detalles.map(detalle => (
+                        <ListGroup.Item key={detalle.id} className="d-flex justify-content-between">
+                            <span>{detalle.producto.nombre} × {detalle.cantidad}</span>
+                            <span>{formatoPesos(detalle.subtotal)}</span>
+                        </ListGroup.Item>
+                    ))}
+                    <ListGroup.Item className="d-flex justify-content-between">
+                        <span>Despacho</span>
+                        <span>{formatoPesos(pedido.despacho)}</span>
+                    </ListGroup.Item>
+                </ListGroup>
+
+                <Button variant="success" onClick={() => irA("productos")}>Seguir comprando</Button>
+            </main>
+        );
+    }
 
     if (!productos || error) return <EstadoCarga error={error} />;
 
@@ -25,12 +59,34 @@ function Carrito({ carrito, irA, cambiarCantidad, eliminarDelCarrito }) {
     }
     const despacho = subtotal > 0 ? 2990 : 0;
 
+    // Al pagar, el carrito (que hasta ahora solo vivía en el navegador) viaja al backend
+    // y se guarda en H2 como un pedido. Solo se mandan ids y cantidades: el precio lo pone el backend.
+    async function pagar() {
+        setPagando(true);
+        setErrorPago(null);
+        try {
+            const creado = await crearPedido({
+                usuarioId: sesion.id,
+                items: lineas.map(item => ({ productoId: item.id, cantidad: item.cantidad }))
+            });
+            vaciarCarrito();
+            setPedido(creado);
+        } catch (err) {
+            setErrorPago(err);
+            // Se recargan los productos para mostrar el stock real (por si alguien compró antes)
+            listarProductos(true).then(setProductos).catch(() => {});
+        } finally {
+            setPagando(false);
+        }
+    }
+
     return (
         <main>
             <h1 className="mb-4">Mi carrito de compras</h1>
 
             <Row className="g-4">
                 <Col as="section" lg={8}>
+                    {lineas.length === 0 && <p className="text-muted">Tu carrito está vacío.</p>}
                     <ListGroup className="mb-3">
                         {lineas.map(item => {
                             const producto = item.producto;
@@ -104,11 +160,22 @@ function Carrito({ carrito, irA, cambiarCantidad, eliminarDelCarrito }) {
                                 </InputGroup>
                             </Form>
 
-                            <Button href="#" variant="success" className="w-100">Pagar</Button>
+                            <ErroresApi error={errorPago} />
+
+                            {sesion ? (
+                                <Button variant="success" className="w-100" disabled={lineas.length === 0 || pagando} onClick={pagar}>
+                                    {pagando ? "Procesando pago..." : "Pagar"}
+                                </Button>
+                            ) : (
+                                <Button variant="success" className="w-100" onClick={() => irA("login")}>
+                                    Inicia sesión para pagar
+                                </Button>
+                            )}
 
                             <p className="mt-3 mb-0 small text-muted">
-                                El carrito se guarda en <code>localStorage</code>, por lo que se
-                                conserva si cierras la pestaña.
+                                Mientras eliges, el carrito se guarda en <code>localStorage</code> (se
+                                conserva si cierras la pestaña). Al pagar, se envía al backend y queda
+                                guardado como pedido en la base de datos.
                             </p>
                         </Card.Body>
                     </Card>
