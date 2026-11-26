@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Form, Button, Alert, Image } from "react-bootstrap";
 import ErroresApi from "./ErroresApi";
-import { actualizarProducto, crearProducto, eliminarProducto, listarCategorias } from "../api";
+import {
+    actualizarProducto, crearProducto, eliminarProducto, listarCategorias,
+    subirImagenProducto, eliminarImagenProducto, urlImagen
+} from "../api";
+
+// Mismas reglas que valida el backend al subir la imagen
+const TIPOS_DE_IMAGEN = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAXIMO_IMAGEN = 2 * 1024 * 1024; // 2 MB
 
 function FormularioProducto({ producto, esNuevo, irA }) {
     const [categorias, setCategorias] = useState([]);
@@ -13,7 +20,12 @@ function FormularioProducto({ producto, esNuevo, irA }) {
     const [precio, setPrecio] = useState(String(producto.precio));
     const [stock, setStock] = useState(String(producto.stock));
     const [stockCritico, setStockCritico] = useState(String(producto.stockCritico ?? ""));
-    const [imagen, setImagen] = useState(producto.imagen ?? "");
+    const [archivo, setArchivo] = useState(null);           // imagen nueva elegida (File), aún sin subir
+    const [vistaPrevia, setVistaPrevia] = useState(null);   // URL temporal para mostrar ese archivo
+    const [quitarImagen, setQuitarImagen] = useState(false);
+    // id del producto ya guardado. Si al crear un producto falla la subida de la imagen,
+    // el siguiente "Guardar" actualiza ese producto en vez de intentar crearlo otra vez.
+    const [idGuardado, setIdGuardado] = useState(esNuevo ? null : producto.id);
     const [destacado, setDestacado] = useState(producto.destacado);
     const [publicado, setPublicado] = useState(producto.publicado);
     const [enviado, setEnviado] = useState(false);
@@ -45,14 +57,31 @@ function FormularioProducto({ producto, esNuevo, irA }) {
         errorCritico = "El stock crítico debe ser un número entero igual o mayor a 0.";
     }
 
+    let errorArchivo = "";
+    if (archivo && !TIPOS_DE_IMAGEN.includes(archivo.type)) errorArchivo = "La imagen debe ser JPG, PNG, WEBP o GIF.";
+    else if (archivo && archivo.size > MAXIMO_IMAGEN) errorArchivo = "La imagen no puede superar los 2 MB.";
+
     const stockBajo = stock !== "" && stockCritico !== "" && Number(stock) <= Number(stockCritico);
+
+    // Imagen que se ve en el formulario: la recién elegida, o la que ya tiene el producto en la BD
+    let imagenAMostrar = null;
+    if (vistaPrevia) imagenAMostrar = vistaPrevia;
+    else if (producto.imagen && !quitarImagen) imagenAMostrar = urlImagen(producto);
+
+    function elegirArchivo(e) {
+        const elegido = e.target.files[0] ?? null;
+        if (vistaPrevia) URL.revokeObjectURL(vistaPrevia); // libera la vista previa anterior
+        setArchivo(elegido);
+        setVistaPrevia(elegido ? URL.createObjectURL(elegido) : null);
+        setQuitarImagen(false);
+    }
 
     async function enviar(e) {
         e.preventDefault();
         setEnviado(true);
         setError(null);
 
-        if (errorCodigo || errorCategoria || errorNombre || errorUnidad || errorPrecio || errorStock || errorCritico) {
+        if (errorCodigo || errorCategoria || errorNombre || errorUnidad || errorPrecio || errorStock || errorCritico || errorArchivo) {
             return;
         }
 
@@ -64,7 +93,6 @@ function FormularioProducto({ producto, esNuevo, irA }) {
             precio: Number(precio),
             stock: Number(stock),
             stockCritico: stockCritico === "" ? null : Number(stockCritico),
-            imagen: imagen.trim() || null,
             alt: esNuevo ? null : producto.alt,
             descripcion: descripcion.trim() || null,
             destacado,
@@ -73,7 +101,14 @@ function FormularioProducto({ producto, esNuevo, irA }) {
 
         setEnviando(true);
         try {
-            const guardado = esNuevo ? await crearProducto(datos) : await actualizarProducto(producto.id, datos);
+            // 1) Los datos del producto (JSON)
+            const guardado = idGuardado ? await actualizarProducto(idGuardado, datos) : await crearProducto(datos);
+            setIdGuardado(guardado.id);
+
+            // 2) La imagen va aparte, como archivo, porque necesita el id del producto
+            if (archivo) await subirImagenProducto(guardado.id, archivo);
+            else if (quitarImagen) await eliminarImagenProducto(guardado.id);
+
             irA("admin-producto-ver", guardado.id);
         } catch (err) {
             setError(err);
@@ -225,13 +260,28 @@ function FormularioProducto({ producto, esNuevo, irA }) {
 
                     <Form.Group className="mb-3" controlId="imagen">
                         <Form.Label>Imagen (opcional)</Form.Label>
-                        <Form.Control type="text" maxLength={200} placeholder="/img/productos/tomate.jpg" value={imagen} onChange={e => setImagen(e.target.value)} />
-                        <Form.Text>
-                            Las imágenes no se guardan en la base de datos: copia el archivo en <code>public/img/productos</code> y escribe aquí su ruta.
-                        </Form.Text>
+                        <Form.Control
+                            type="file"
+                            accept={TIPOS_DE_IMAGEN.join(",")}
+                            onChange={elegirArchivo}
+                            isInvalid={errorArchivo !== ""}
+                        />
+                        <Form.Text>JPG, PNG, WEBP o GIF de hasta 2 MB. Se guarda en la base de datos junto con el producto.</Form.Text>
+                        <Form.Control.Feedback type="invalid">{errorArchivo}</Form.Control.Feedback>
                     </Form.Group>
 
-                    {imagen.trim() !== "" && <Image src={imagen.trim()} alt={nombre} width="200" height="150" rounded thumbnail className="mb-3 object-fit-cover" />}
+                    {imagenAMostrar && <Image src={imagenAMostrar} alt={nombre} width="200" height="150" rounded thumbnail className="mb-3 object-fit-cover" />}
+
+                    {producto.imagen && !archivo && (
+                        <Form.Check
+                            type="checkbox"
+                            id="quitar-imagen"
+                            label="Quitar la imagen actual"
+                            className="mb-3"
+                            checked={quitarImagen}
+                            onChange={e => setQuitarImagen(e.target.checked)}
+                        />
+                    )}
 
                     <Form.Check
                         type="checkbox"

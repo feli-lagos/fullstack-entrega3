@@ -1,11 +1,12 @@
 import { Card, Button } from "react-bootstrap";
 import { formatoPesos } from "../formato";
+import { urlImagen } from "../api";
 
 function TarjetaProducto({ producto, irA, agregarAlCarrito }) {
     return (
         <Card className="h-100 shadow-sm">
             <a href="#" onClick={() => irA("detalle", producto.id)}>
-                <Card.Img variant="top" src={producto.imagen} alt={producto.alt} height="160" className="object-fit-cover" />
+                <Card.Img variant="top" src={urlImagen(producto)} alt={producto.alt} height="160" className="object-fit-cover" />
             </a>
 
             <Card.Body className="d-flex flex-column">

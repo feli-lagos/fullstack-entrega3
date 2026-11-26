@@ -10,7 +10,6 @@ const productoVacio = {
     precio: "",
     stock: "",
     stockCritico: "",
-    imagen: "/img/productos/",
     destacado: false,
     publicado: true
 };

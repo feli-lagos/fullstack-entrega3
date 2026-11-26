@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Button, Breadcrumb, Image } from "react-bootstrap";
 import EstadoCarga from "../../components/EstadoCarga";
-import { obtenerProducto } from "../../api";
+import { obtenerProducto, urlImagen } from "../../api";
 import { enStockCritico, formatoFechaHora, formatoPesos } from "../../formato";
 
 function ProductoVer({ id, irA }) {
@@ -61,7 +61,7 @@ function ProductoVer({ id, irA }) {
                         <Col as="dd" sm={8} lg={9}>{producto.descripcion}</Col>
                         <Col as="dt" sm={4} lg={3}>Imagen</Col>
                         <Col as="dd" sm={8} lg={9}>
-                            <Image src={producto.imagen} alt={producto.alt} width="400" height="300" rounded thumbnail />
+                            <Image src={urlImagen(producto)} alt={producto.alt} width="400" height="300" rounded thumbnail />
                         </Col>
                         <Col as="dt" sm={4} lg={3}>Última modificación</Col>
                         <Col as="dd" sm={8} lg={9}>{formatoFechaHora(producto.fechaModificacion)}</Col>

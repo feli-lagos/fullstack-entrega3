@@ -8,19 +8,24 @@ import com.huertoverde.repository.CategoriaRepository;
 import com.huertoverde.repository.ComunaRepository;
 import com.huertoverde.repository.ProductoRepository;
 import com.huertoverde.repository.UsuarioRepository;
+import com.huertoverde.service.ProductoService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// Productos y usuarios de ejemplo. Las imágenes quedan en el frontend (public/img); aquí solo se guarda su ruta.
+// Productos y usuarios de ejemplo. Las fotos de los productos se guardan dentro de la BD (ver subirFotosDeEjemplo).
 @Configuration
 @Profile("!test")
 public class DataLoader {
@@ -32,7 +37,7 @@ public class DataLoader {
 	@Bean
 	@Order(2)
 	CommandLineRunner cargarDatosDeEjemplo(CategoriaRepository categorias, ProductoRepository productos,
-			UsuarioRepository usuarios, ComunaRepository comunas, PasswordEncoder encoder) {
+			UsuarioRepository usuarios, ComunaRepository comunas, PasswordEncoder encoder, ProductoService productoService) {
 		return args -> {
 			if (productos.count() == 0) {
 				List<Categoria> lista = categorias.findAll();
@@ -76,6 +81,7 @@ public class DataLoader {
 						"/img/productos/miel.jpg", "Frasco de miel de ulmo",
 						"Miel de ulmo de productores locales, envasada en origen.", false));
 			}
+			subirFotosDeEjemplo(productos, productoService);
 			if (usuarios.count() > 0) {
 				return;
 			}
@@ -115,6 +121,27 @@ public class DataLoader {
 					comuna(comunas, "Puente Alto", "Metropolitana de Santiago"), "Av. Concha y Toro 1890", LocalDate.of(1997, 9, 23),
 					LocalDateTime.of(2024, 11, 5, 0, 0), LocalDateTime.of(2026, 9, 3, 22, 18), clave));
 		};
+	}
+
+	// Los productos de ejemplo indican su foto con una ruta /img/productos/x.jpg (igual que las BD creadas
+	// antes de que las imágenes se guardaran en la BD). Aquí esa foto se lee desde
+	// src/main/resources/imagenes-ejemplo, se guarda en la tabla imagenes_producto y la ruta se reemplaza
+	// por la URL de la API. Solo trabaja la primera vez: después ninguna imagen empieza con /img/.
+	private static void subirFotosDeEjemplo(ProductoRepository productos, ProductoService servicio) throws IOException {
+		for (Producto producto : productos.findAll()) {
+			String ruta = producto.getImagen();
+			if (ruta != null && ruta.startsWith("/img/")) {
+				String nombre = ruta.substring(ruta.lastIndexOf('/') + 1);
+				ClassPathResource foto = new ClassPathResource("imagenes-ejemplo/" + nombre);
+				if (foto.exists()) {
+					String tipo = MediaTypeFactory.getMediaType(nombre).map(MediaType::toString).orElse("image/jpeg");
+					servicio.guardarImagen(producto.getId(), foto.getContentAsByteArray(), tipo);
+				} else {
+					// La ruta apuntaba a un archivo que no existe: el producto queda sin foto
+					servicio.eliminarImagen(producto.getId());
+				}
+			}
+		}
 	}
 
 	private static Categoria categoria(List<Categoria> categorias, String codigo) {

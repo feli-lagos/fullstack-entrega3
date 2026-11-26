@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Row, Col, Breadcrumb, Image, Form, Button, Badge } from "react-bootstrap";
 import TarjetaProducto from "../components/TarjetaProducto";
 import EstadoCarga from "../components/EstadoCarga";
-import { listarProductos, obtenerProducto } from "../api";
+import { listarProductos, obtenerProducto, urlImagen } from "../api";
 import { formatoPesos } from "../formato";
 
 function DetalleProducto({ id, irA, agregarAlCarrito }) {
@@ -40,11 +40,11 @@ function DetalleProducto({ id, irA, agregarAlCarrito }) {
 
             <Row as="article" className="g-4 mb-5">
                 <Col md={6}>
-                    <Image src={producto.imagen} alt={producto.alt} rounded height="320" className="w-100 object-fit-cover border" />
+                    <Image src={urlImagen(producto)} alt={producto.alt} rounded height="320" className="w-100 object-fit-cover border" />
                     <div className="d-flex gap-2 mt-2">
-                        <Image src={producto.imagen} alt="Vista 1" thumbnail width="70" />
-                        <Image src={producto.imagen} alt="Vista 2" thumbnail width="70" />
-                        <Image src={producto.imagen} alt="Vista 3" thumbnail width="70" />
+                        <Image src={urlImagen(producto)} alt="Vista 1" thumbnail width="70" />
+                        <Image src={urlImagen(producto)} alt="Vista 2" thumbnail width="70" />
+                        <Image src={urlImagen(producto)} alt="Vista 3" thumbnail width="70" />
                     </div>
                 </Col>
 

@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -58,6 +59,12 @@ abstract class ApiTestBase {
 
 	protected ResultActions delete(String url) throws Exception {
 		return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(url));
+	}
+
+	// Sube un archivo como lo hace el formulario del admin (multipart/form-data, campo "archivo")
+	protected ResultActions subirImagen(long productoId, String tipo, byte[] datos) throws Exception {
+		MockMultipartFile archivo = new MockMultipartFile("archivo", "foto", tipo, datos);
+		return mvc.perform(multipart("/api/productos/" + productoId + "/imagen").file(archivo));
 	}
 
 	protected static String productoJson(String codigo, String nombre, long categoriaId, boolean publicado) {

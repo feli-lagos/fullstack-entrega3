@@ -42,6 +42,27 @@ export const crearProducto = (datos) => enviarJson("POST", "/api/productos", dat
 export const actualizarProducto = (id, datos) => enviarJson("PUT", `/api/productos/${id}`, datos);
 export const eliminarProducto = (id) => pedir(`/api/productos/${id}`, { method: "DELETE" });
 
+// Imagen del producto: el archivo se guarda en la base de datos del backend.
+// La API entrega solo la ruta (/api/productos/5/imagen?v=...); aquí se le agrega la dirección del servidor.
+// Un producto sin imagen muestra un recuadro gris dibujado aquí mismo (no depende de ningún archivo).
+const SIN_IMAGEN = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">' +
+    '<rect width="100%" height="100%" fill="#e9ecef"/>' +
+    '<text x="50%" y="50%" fill="#6c757d" font-family="sans-serif" font-size="24" text-anchor="middle" dominant-baseline="middle">Sin imagen</text>' +
+    '</svg>'
+);
+
+export const urlImagen = (producto) => (producto.imagen ? `${API_URL}${producto.imagen}` : SIN_IMAGEN);
+
+export const subirImagenProducto = (id, archivo) => {
+    const formulario = new FormData();
+    formulario.append("archivo", archivo);
+    // Sin "Content-Type": con FormData el navegador arma solo el multipart/form-data
+    return pedir(`/api/productos/${id}/imagen`, { method: "POST", body: formulario });
+};
+
+export const eliminarImagenProducto = (id) => pedir(`/api/productos/${id}/imagen`, { method: "DELETE" });
+
 // Usuarios
 export const listarUsuarios = () => pedir("/api/usuarios");
 export const obtenerUsuario = (id) => pedir(`/api/usuarios/${id}`);

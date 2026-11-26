@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> tipoIncorrecto(MethodArgumentTypeMismatchException ex) {
 		return respuesta(HttpStatus.BAD_REQUEST,
 				"El parámetro '" + ex.getName() + "' tiene un valor inválido: " + ex.getValue(), null);
+	}
+
+	// Imagen más grande que spring.servlet.multipart.max-file-size (application.properties)
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ErrorResponse> archivoMuyGrande(MaxUploadSizeExceededException ex) {
+		return respuesta(HttpStatus.CONTENT_TOO_LARGE, "La imagen no puede superar los 2 MB", null);
 	}
 
 	private ResponseEntity<ErrorResponse> respuesta(HttpStatus status, String mensaje, Map<String, String> errores) {

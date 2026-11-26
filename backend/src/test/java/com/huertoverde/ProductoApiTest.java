@@ -3,6 +3,7 @@ package com.huertoverde;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -95,5 +96,86 @@ class ProductoApiTest extends ApiTestBase {
 	@Test
 	void obtenerProducto_conIdNoNumerico_devuelve400() throws Exception {
 		get("/api/productos/abc").andExpect(status().isBadRequest());
+	}
+
+	// ---------- Imagen del producto (guardada en la BD) ----------
+
+	private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10, 1, 2, 3, 4};
+
+	@Test
+	void subirImagen_devuelveElProductoConLaUrlDeSuImagen() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "image/png", PNG)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(id))
+				.andExpect(jsonPath("$.imagen").value(startsWith("/api/productos/" + id + "/imagen")));
+	}
+
+	@Test
+	void obtenerImagen_devuelveLosMismosBytesConSuTipo() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "image/png", PNG).andExpect(status().isOk());
+
+		get("/api/productos/" + id + "/imagen")
+				.andExpect(status().isOk())
+				.andExpect(content().contentType("image/png"))
+				.andExpect(content().bytes(PNG));
+	}
+
+	@Test
+	void obtenerImagen_deProductoSinImagen_devuelve404() throws Exception {
+		long id = crearProducto();
+		get("/api/productos/" + id + "/imagen").andExpect(status().isNotFound());
+	}
+
+	@Test
+	void subirImagen_conArchivoQueNoEsImagen_devuelve400() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "text/plain", "hola".getBytes())
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.mensaje").value(containsString("JPG")));
+	}
+
+	@Test
+	void subirImagen_aProductoInexistente_devuelve404() throws Exception {
+		subirImagen(999999, "image/png", PNG).andExpect(status().isNotFound());
+	}
+
+	@Test
+	void crearProducto_ignoraLaRutaDeImagenEnviadaEnElJson() throws Exception {
+		// productoJson trae "imagen":"/img/productos/tomate.jpg": la imagen solo se cambia subiendo el archivo
+		postJson("/api/productos", productoJson(nuevoCodigo(), "Sin foto", primeraCategoria(), true))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.imagen").value(nullValue()));
+	}
+
+	@Test
+	void actualizarProducto_conservaLaImagenSubida() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "image/png", PNG).andExpect(status().isOk());
+
+		putJson("/api/productos/" + id, productoJson(nuevoCodigo(), "Editado", primeraCategoria(), true))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.imagen").value(startsWith("/api/productos/" + id + "/imagen")));
+	}
+
+	@Test
+	void eliminarImagen_dejaElProductoSinImagen() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "image/png", PNG).andExpect(status().isOk());
+
+		delete("/api/productos/" + id + "/imagen").andExpect(status().isNoContent());
+
+		get("/api/productos/" + id).andExpect(jsonPath("$.imagen").value(nullValue()));
+		get("/api/productos/" + id + "/imagen").andExpect(status().isNotFound());
+	}
+
+	@Test
+	void eliminarProducto_conImagen_devuelve204() throws Exception {
+		long id = crearProducto();
+		subirImagen(id, "image/png", PNG).andExpect(status().isOk());
+
+		delete("/api/productos/" + id).andExpect(status().isNoContent());
+		get("/api/productos/" + id).andExpect(status().isNotFound());
 	}
 }

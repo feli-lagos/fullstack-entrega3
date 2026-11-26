@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Row, Col, Card, ListGroup, Image, Button, Form, InputGroup, Alert } from "react-bootstrap";
 import EstadoCarga from "../components/EstadoCarga";
 import ErroresApi from "../components/ErroresApi";
-import { crearPedido, listarProductos } from "../api";
+import { crearPedido, listarProductos, urlImagen } from "../api";
 import { formatoPesos } from "../formato";
 
 function Carrito({ carrito, sesion, irA, cambiarCantidad, eliminarDelCarrito, vaciarCarrito }) {
@@ -95,7 +95,7 @@ function Carrito({ carrito, sesion, irA, cambiarCantidad, eliminarDelCarrito, va
                                 <ListGroup.Item key={item.id} as="article" className="py-3">
                                     <Row className="align-items-center g-3">
                                         <Col xs={3} md={2}>
-                                            <Image src={producto.imagen} alt={producto.alt} rounded height="56" className="w-100 object-fit-cover" />
+                                            <Image src={urlImagen(producto)} alt={producto.alt} rounded height="56" className="w-100 object-fit-cover" />
                                         </Col>
 
                                         <Col xs={9} md={4}>

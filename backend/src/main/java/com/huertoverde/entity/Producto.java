@@ -57,8 +57,10 @@ public class Producto {
 	@Min(value = 0, message = "El stock crítico debe ser un número entero igual o mayor a 0")
 	private Integer stockCritico;
 
-	// Ruta pública de la imagen (los archivos quedan en el frontend, fuera de la BD)
-	@Size(max = 200, message = "La ruta de la imagen no puede superar los 200 caracteres")
+	// URL de la imagen en la API (/api/productos/5/imagen?v=...), o null si no tiene.
+	// La foto misma está en la tabla imagenes_producto. Solo lectura: no se puede cambiar
+	// enviándola en el JSON, solo subiendo el archivo a POST /api/productos/{id}/imagen.
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	@Column(length = 200)
 	private String imagen;
 
