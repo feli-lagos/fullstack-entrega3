@@ -11,7 +11,6 @@ function Login({ irA, onIniciarSesion }) {
     const [correo, setCorreo] = useState(localStorage.getItem("correo-recordado") || "");
     const [contrasena, setContrasena] = useState("");
     const [recordar, setRecordar] = useState(localStorage.getItem("correo-recordado") !== null);
-    const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
     const [enviando, setEnviando] = useState(false);
 
@@ -34,17 +33,13 @@ function Login({ irA, onIniciarSesion }) {
             localStorage.removeItem("correo-recordado");
         }
 
-        setMensaje("");
         setError("");
         setEnviando(true);
         try {
             const usuario = await iniciarSesion(correo.trim(), contrasena);
             onIniciarSesion(usuario);
-            if (usuario.tipo === "administrador") {
-                irA("admin");
-            } else {
-                setMensaje(`Bienvenido/a, ${usuario.nombre}. Sesión iniciada correctamente.`);
-            }
+            // El administrador va a su panel; cualquier otro usuario (cliente o vendedor) vuelve al inicio
+            irA(usuario.tipo === "administrador" ? "admin" : "inicio");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -94,7 +89,6 @@ function Login({ irA, onIniciarSesion }) {
                                     </Button>
                                 </div>
 
-                                {mensaje && <Alert variant="success" className="mt-3 mb-0">{mensaje}</Alert>}
                                 {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
 
                                 <p className="text-center mt-3 mb-0">
