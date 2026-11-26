@@ -1,4 +1,5 @@
 import { Breadcrumb, Image } from "react-bootstrap";
+import EnlaceProducto from "../components/EnlaceProducto";
 
 function Blog1({ irA }) {
     return (
@@ -54,7 +55,7 @@ function Blog1({ irA }) {
                 </ol>
 
                 <p>
-                    ¿Quieres probarlo en casa? Nuestras <a href="#" onClick={() => irA("detalle", "FR-001")} className="link-success">manzanas Fuji</a> llegan
+                    ¿Quieres probarlo en casa? Nuestras <EnlaceProducto codigo="FR-001" irA={irA}>manzanas Fuji</EnlaceProducto> llegan
                     directo desde San Clemente, cosechadas la semana anterior al despacho.
                 </p>
 

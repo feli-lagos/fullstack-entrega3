@@ -22,3 +22,19 @@ export const tiposUsuario = {
     vendedor: "Vendedor",
     cliente: "Cliente"
 };
+
+// Corta una lista en páginas. Si la página pedida ya no existe (por ejemplo, después de
+// filtrar o eliminar), se queda en la última que sí existe.
+export const FILAS_POR_PAGINA = 10;
+
+export function paginar(lista, pagina) {
+    const totalPaginas = Math.max(1, Math.ceil(lista.length / FILAS_POR_PAGINA));
+    const paginaActual = Math.min(pagina, totalPaginas);
+    const inicio = (paginaActual - 1) * FILAS_POR_PAGINA;
+    return { visibles: lista.slice(inicio, inicio + FILAS_POR_PAGINA), paginaActual, totalPaginas };
+}
+
+// Para los buscadores: compara sin importar mayúsculas
+export function contieneTexto(valor, texto) {
+    return (valor ?? "").toString().toLowerCase().includes(texto);
+}

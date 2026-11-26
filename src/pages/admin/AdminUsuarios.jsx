@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Form, Button, Table, Pagination, Alert } from "react-bootstrap";
+import { Row, Col, Form, Button, Table, Alert } from "react-bootstrap";
 import EstadoCarga from "../../components/EstadoCarga";
+import Paginacion from "../../components/Paginacion";
 import { eliminarUsuario, listarRegiones, listarUsuarios } from "../../api";
-import { tiposUsuario } from "../../formato";
+import { contieneTexto, paginar, tiposUsuario } from "../../formato";
 
 function AdminUsuarios({ irA }) {
     const [usuarios, setUsuarios] = useState(null);
     const [regiones, setRegiones] = useState([]);
     const [error, setError] = useState("");
     const [aviso, setAviso] = useState(null);
+    const [busqueda, setBusqueda] = useState("");
+    const [tipo, setTipo] = useState("");
+    const [region, setRegion] = useState("");
+    const [pagina, setPagina] = useState(1);
 
     useEffect(() => {
         listarUsuarios().then(setUsuarios).catch(e => setError(e.message));
@@ -26,7 +31,34 @@ function AdminUsuarios({ irA }) {
         }
     }
 
+    // Al cambiar un filtro se vuelve a la página 1
+    function cambiarFiltro(setFiltro) {
+        return e => {
+            setFiltro(e.target.value);
+            setPagina(1);
+        };
+    }
+
+    function limpiarFiltros() {
+        setBusqueda("");
+        setTipo("");
+        setRegion("");
+        setPagina(1);
+    }
+
     if (!usuarios || error) return <EstadoCarga error={error} />;
+
+    // Los filtros se aplican sobre los usuarios que ya llegaron de la API
+    const texto = busqueda.trim().toLowerCase();
+    const filtrados = usuarios.filter(usuario =>
+        (texto === "" ||
+            contieneTexto(usuario.run, texto) ||
+            contieneTexto(`${usuario.nombre} ${usuario.apellidos}`, texto) ||
+            contieneTexto(usuario.correo, texto)) &&
+        (tipo === "" || usuario.tipo === tipo) &&
+        (region === "" || String(usuario.comuna.region.id) === region)
+    );
+    const { visibles, paginaActual, totalPaginas } = paginar(filtrados, pagina);
 
     return (
         <>
@@ -41,13 +73,13 @@ function AdminUsuarios({ irA }) {
                         <Col md={4}>
                             <Form.Group controlId="buscar">
                                 <Form.Label>Buscar</Form.Label>
-                                <Form.Control type="search" placeholder="Run, nombre o correo" maxLength={100} />
+                                <Form.Control type="search" placeholder="Run, nombre o correo" maxLength={100} value={busqueda} onChange={cambiarFiltro(setBusqueda)} />
                             </Form.Group>
                         </Col>
                         <Col md={3}>
                             <Form.Group controlId="perfil">
                                 <Form.Label>Tipo de usuario</Form.Label>
-                                <Form.Select>
+                                <Form.Select value={tipo} onChange={cambiarFiltro(setTipo)}>
                                     <option value="">Todos</option>
                                     <option value="administrador">Administrador</option>
                                     <option value="vendedor">Vendedor</option>
@@ -58,16 +90,16 @@ function AdminUsuarios({ irA }) {
                         <Col md={3}>
                             <Form.Group controlId="region">
                                 <Form.Label>Región</Form.Label>
-                                <Form.Select>
+                                <Form.Select value={region} onChange={cambiarFiltro(setRegion)}>
                                     <option value="">Todas</option>
-                                    {regiones.map(region => (
-                                        <option key={region.id} value={region.id}>{region.nombre}</option>
+                                    {regiones.map(r => (
+                                        <option key={r.id} value={r.id}>{r.nombre}</option>
                                     ))}
                                 </Form.Select>
                             </Form.Group>
                         </Col>
                         <Col xs="auto">
-                            <Button type="submit" variant="outline-success">Filtrar</Button>
+                            <Button variant="outline-success" onClick={limpiarFiltros}>Limpiar filtros</Button>
                         </Col>
                     </Row>
                 </Form>
@@ -75,7 +107,7 @@ function AdminUsuarios({ irA }) {
                 {aviso && <Alert variant={aviso.tipo} dismissible onClose={() => setAviso(null)}>{aviso.texto}</Alert>}
 
                 <Table striped bordered hover responsive size="sm" className="caption-top">
-                    <caption>Listado de usuarios ({usuarios.length} registros)</caption>
+                    <caption>Listado de usuarios ({filtrados.length} de {usuarios.length} registros)</caption>
                     <thead>
                         <tr>
                             <th>Run</th>
@@ -88,7 +120,12 @@ function AdminUsuarios({ irA }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {usuarios.map(usuario => (
+                        {visibles.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="text-center text-muted">No hay usuarios que coincidan con los filtros.</td>
+                            </tr>
+                        )}
+                        {visibles.map(usuario => (
                             <tr key={usuario.id}>
                                 <th>{usuario.run}</th>
                                 <td>{usuario.nombre}</td>
@@ -108,15 +145,7 @@ function AdminUsuarios({ irA }) {
                     </tbody>
                 </Table>
 
-                <Pagination size="sm" className="mt-3">
-                    <Pagination.Prev>&laquo;</Pagination.Prev>
-                    <Pagination.Item active>1</Pagination.Item>
-                    <Pagination.Item>2</Pagination.Item>
-                    <Pagination.Item>3</Pagination.Item>
-                    <Pagination.Item>4</Pagination.Item>
-                    <Pagination.Item>5</Pagination.Item>
-                    <Pagination.Next>&raquo;</Pagination.Next>
-                </Pagination>
+                <Paginacion pagina={paginaActual} totalPaginas={totalPaginas} onCambiar={setPagina} />
             </main>
         </>
     );

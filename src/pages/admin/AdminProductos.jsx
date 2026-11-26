@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Form, Button, Table, Badge, Pagination, Alert } from "react-bootstrap";
+import { Row, Col, Form, Button, Table, Badge, Alert } from "react-bootstrap";
 import EstadoCarga from "../../components/EstadoCarga";
+import Paginacion from "../../components/Paginacion";
 import { eliminarProducto, listarCategorias, listarProductos } from "../../api";
-import { enStockCritico, formatoPesos } from "../../formato";
+import { contieneTexto, enStockCritico, formatoPesos, paginar } from "../../formato";
 
 function AdminProductos({ irA }) {
     const [productos, setProductos] = useState(null);
     const [categorias, setCategorias] = useState([]);
     const [error, setError] = useState("");
     const [aviso, setAviso] = useState(null);
+    const [busqueda, setBusqueda] = useState("");
+    const [categoria, setCategoria] = useState("");
+    const [estado, setEstado] = useState("");
+    const [pagina, setPagina] = useState(1);
 
     useEffect(() => {
         listarProductos().then(setProductos).catch(e => setError(e.message));
@@ -26,7 +31,34 @@ function AdminProductos({ irA }) {
         }
     }
 
+    // Al cambiar un filtro se vuelve a la página 1
+    function cambiarFiltro(setFiltro) {
+        return e => {
+            setFiltro(e.target.value);
+            setPagina(1);
+        };
+    }
+
+    function limpiarFiltros() {
+        setBusqueda("");
+        setCategoria("");
+        setEstado("");
+        setPagina(1);
+    }
+
     if (!productos || error) return <EstadoCarga error={error} />;
+
+    // Los filtros se aplican sobre los productos que ya llegaron de la API
+    const texto = busqueda.trim().toLowerCase();
+    const filtrados = productos.filter(producto =>
+        (texto === "" || contieneTexto(producto.codigo, texto) || contieneTexto(producto.nombre, texto)) &&
+        (categoria === "" || producto.categoria.codigo === categoria) &&
+        (estado === "" ||
+            (estado === "publicado" && producto.publicado) ||
+            (estado === "borrador" && !producto.publicado) ||
+            (estado === "critico" && enStockCritico(producto)))
+    );
+    const { visibles, paginaActual, totalPaginas } = paginar(filtrados, pagina);
 
     return (
         <>
@@ -41,13 +73,13 @@ function AdminProductos({ irA }) {
                         <Col md={4}>
                             <Form.Group controlId="buscar">
                                 <Form.Label>Buscar</Form.Label>
-                                <Form.Control type="search" placeholder="Código o nombre" maxLength={100} />
+                                <Form.Control type="search" placeholder="Código o nombre" maxLength={100} value={busqueda} onChange={cambiarFiltro(setBusqueda)} />
                             </Form.Group>
                         </Col>
                         <Col md={3}>
                             <Form.Group controlId="categoria">
                                 <Form.Label>Categoría</Form.Label>
-                                <Form.Select>
+                                <Form.Select value={categoria} onChange={cambiarFiltro(setCategoria)}>
                                     <option value="">Todas</option>
                                     {categorias.map(c => (
                                         <option key={c.id} value={c.codigo}>{c.nombre}</option>
@@ -58,7 +90,7 @@ function AdminProductos({ irA }) {
                         <Col md={3}>
                             <Form.Group controlId="estado">
                                 <Form.Label>Estado</Form.Label>
-                                <Form.Select>
+                                <Form.Select value={estado} onChange={cambiarFiltro(setEstado)}>
                                     <option value="">Todos</option>
                                     <option value="publicado">Publicado</option>
                                     <option value="borrador">Borrador</option>
@@ -67,7 +99,7 @@ function AdminProductos({ irA }) {
                             </Form.Group>
                         </Col>
                         <Col xs="auto">
-                            <Button type="submit" variant="outline-success">Filtrar</Button>
+                            <Button variant="outline-success" onClick={limpiarFiltros}>Limpiar filtros</Button>
                         </Col>
                     </Row>
                 </Form>
@@ -75,7 +107,7 @@ function AdminProductos({ irA }) {
                 {aviso && <Alert variant={aviso.tipo} dismissible onClose={() => setAviso(null)}>{aviso.texto}</Alert>}
 
                 <Table striped bordered hover responsive size="sm" className="caption-top">
-                    <caption>Listado de productos ({productos.length} registros)</caption>
+                    <caption>Listado de productos ({filtrados.length} de {productos.length} registros)</caption>
                     <thead>
                         <tr>
                             <th>Código</th>
@@ -88,10 +120,18 @@ function AdminProductos({ irA }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {productos.map(producto => (
+                        {visibles.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="text-center text-muted">No hay productos que coincidan con los filtros.</td>
+                            </tr>
+                        )}
+                        {visibles.map(producto => (
                             <tr key={producto.id}>
                                 <th>{producto.codigo}</th>
-                                <td>{producto.nombre}</td>
+                                <td>
+                                    {producto.nombre}
+                                    {!producto.publicado && <Badge bg="secondary" className="ms-2">Borrador</Badge>}
+                                </td>
                                 <td>{producto.categoria.nombre}</td>
                                 <td>{formatoPesos(producto.precio)}</td>
                                 <td>
@@ -112,13 +152,7 @@ function AdminProductos({ irA }) {
                     </tbody>
                 </Table>
 
-                <Pagination size="sm" className="mt-3">
-                    <Pagination.Prev>&laquo;</Pagination.Prev>
-                    <Pagination.Item active>1</Pagination.Item>
-                    <Pagination.Item>2</Pagination.Item>
-                    <Pagination.Item>3</Pagination.Item>
-                    <Pagination.Next>&raquo;</Pagination.Next>
-                </Pagination>
+                <Paginacion pagina={paginaActual} totalPaginas={totalPaginas} onCambiar={setPagina} />
             </main>
         </>
     );

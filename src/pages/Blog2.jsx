@@ -1,4 +1,5 @@
 import { Breadcrumb, Image } from "react-bootstrap";
+import EnlaceProducto from "../components/EnlaceProducto";
 
 function Blog2({ irA }) {
     return (
@@ -52,7 +53,7 @@ function Blog2({ irA }) {
                 </ul>
 
                 <p>
-                    Nuestros <a href="#" onClick={() => irA("detalle", "FR-002")} className="link-success">plátanos de Ecuador</a> llegan
+                    Nuestros <EnlaceProducto codigo="FR-002" irA={irA}>plátanos de Ecuador</EnlaceProducto> llegan
                     con dos o tres días de maduración, listos para consumir durante la semana.
                 </p>
 

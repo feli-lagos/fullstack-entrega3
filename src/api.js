@@ -56,6 +56,9 @@ export const registrarUsuario = (datos) => enviarJson("POST", "/api/auth/registr
 // Contacto
 export const enviarMensaje = (datos) => enviarJson("POST", "/api/mensajes", datos);
 
+// Suscripción a las ofertas (formulario del footer)
+export const suscribirse = (correo) => enviarJson("POST", "/api/suscripciones", { correo });
+
 // Pedidos (el carrito se convierte en pedido al pagar)
 export const listarPedidos = (usuarioId) => pedir(usuarioId ? `/api/pedidos?usuarioId=${usuarioId}` : "/api/pedidos");
 export const crearPedido = (datos) => enviarJson("POST", "/api/pedidos", datos);

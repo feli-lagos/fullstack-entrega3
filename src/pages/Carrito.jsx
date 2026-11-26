@@ -146,19 +146,9 @@ function Carrito({ carrito, sesion, irA, cambiarCantidad, eliminarDelCarrito, va
                                 <Col as="dd" xs={6} className="text-end">{formatoPesos(subtotal)}</Col>
                                 <Col as="dt" xs={6}>Despacho</Col>
                                 <Col as="dd" xs={6} className="text-end">{formatoPesos(despacho)}</Col>
-                                <Col as="dt" xs={6}>Descuento</Col>
-                                <Col as="dd" xs={6} className="text-end">$0</Col>
                                 <Col as="dt" xs={6} className="border-top pt-2">TOTAL</Col>
                                 <Col as="dd" xs={6} className="border-top pt-2 text-end fw-bold">{formatoPesos(subtotal + despacho)}</Col>
                             </Row>
-
-                            <Form onSubmit={e => e.preventDefault()} className="mb-3">
-                                <Form.Label htmlFor="cupon" className="small">Ingrese el cupón de descuento</Form.Label>
-                                <InputGroup>
-                                    <Form.Control type="text" id="cupon" maxLength={20} />
-                                    <Button type="submit" variant="outline-success">Aplicar</Button>
-                                </InputGroup>
-                            </Form>
 
                             <ErroresApi error={errorPago} />
 
